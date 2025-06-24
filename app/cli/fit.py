@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import typer
+from cv2 import imwrite
 
 from app.db import SessionLocal
 from app.models.bike import Bike
@@ -41,26 +42,25 @@ def analyze_fit(
     typer.echo(f"✅ Created output directory: {output_dir}")
     typer.echo("🔄 Running video analysis and generating fit suggestions...")
 
-    annotated_video_path = output_dir / "annotated_video.mp4"
-    avg_angles = analyze_video(video, annotated_video_path)
-
-    angles_path = output_dir / "joint_angles.json"
-    with open(angles_path, "w") as f:
-        json.dump(avg_angles, f, indent=2)
-
-    suggestions: dict[str, str] = generate_fit_suggestions(
-        avg_angles, user.riding_position
+    angle_data, bottom_frame, top_frame = analyze_video(
+        video, output_dir / "annotated_video.mp4"
     )
-    suggestions_path = output_dir / "fit_suggestions.json"
-    with open(suggestions_path, "w") as f:
+
+    imwrite(str(output_dir / "stroke_top.jpg"), top_frame)
+    imwrite(str(output_dir / "stroke_bottom.jpg"), bottom_frame)
+
+    with open(output_dir / "angle_data.json", "w") as f:
+        json.dump(angle_data, f, indent=2)
+
+    suggestions: dict[str, str] = generate_fit_suggestions(angle_data)
+    with open(output_dir / "suggestions.json", "w") as f:
         json.dump(suggestions, f, indent=2)
 
-    typer.echo(f"💡 Fit suggestions saved to: {suggestions_path}")
     typer.echo("📋 Summary of suggestions:")
     for k, v in suggestions.items():
-        typer.echo(f" - {k.capitalize()}: {v}")
+        typer.echo(
+            f" - {''.join([f'[{item.capitalize()}]' for item in k.split('_')])}: {v}"
+        )
 
-    typer.echo(f"✅ Annotated video saved to: {annotated_video_path}")
-    typer.echo(f"📐 Joint angles saved to: {angles_path}")
-    typer.echo(f"🎯 Average angles: {avg_angles}")
+    typer.echo(f"✅ All bike-fit details saved to {output_dir}")
     db.close()
