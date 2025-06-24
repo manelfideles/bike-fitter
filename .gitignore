@@ -5,3 +5,4 @@ __pycache__
 alembic
 bike-fits
 videos
+.DS_Store
