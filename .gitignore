@@ -1,0 +1,7 @@
+.env
+poetry.lock
+__pycache__
+.venv
+alembic
+bike-fits
+videos
